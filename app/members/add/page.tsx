@@ -264,40 +264,46 @@ export default function AddMemberPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
+  // Prevent form submission on Enter key
+  const preventEnterKeySubmission = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+    }
+  };
+
+  // Explicitly separate the submission process from the form
+  const submitForm = async () => {
     if (!validateCurrentStep()) {
       toast({
         title: "Missing required fields",
         description: "Please fill in all required fields before submitting.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
     
-    setIsSubmitting(true)
+    setIsSubmitting(true);
 
     try {
       // In a real app, this would be an API call to create the member
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       toast({
         title: "Member added",
         description: `${formData.firstName} ${formData.lastName} has been added to your community.`,
-      })
+      });
 
-      router.push("/members")
+      router.push("/members");
     } catch (error) {
       toast({
         title: "Error",
         description: "There was an error adding the member. Please try again.",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="space-y-6">
@@ -335,7 +341,7 @@ export default function AddMemberPage() {
       </div>
 
       <Card>
-        <form onSubmit={handleSubmit}>
+        <div onKeyDown={preventEnterKeySubmission}>
           <CardHeader>
             <CardTitle>
               {currentStep === 1 ? "Personal Information" :
@@ -1052,12 +1058,16 @@ export default function AddMemberPage() {
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="button" 
+                disabled={isSubmitting} 
+                onClick={submitForm}
+              >
                 {isSubmitting ? "Adding Member..." : "Add Member"}
               </Button>
             )}
           </CardFooter>
-        </form>
+        </div>
       </Card>
     </div>
   )
