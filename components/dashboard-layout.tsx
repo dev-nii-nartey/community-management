@@ -26,6 +26,8 @@ import {
   User,
   Sun,
   Moon,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 
 interface DashboardLayoutProps {
@@ -38,6 +40,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isOpen, toggle, close } = useSidebar()
   const { theme, setTheme } = useTheme()
   const [isMounted, setIsMounted] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
@@ -70,6 +73,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark")
+  }
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(!sidebarCollapsed)
   }
 
   return (
@@ -142,10 +149,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       </header>
 
       {/* Desktop sidebar - fixed position */}
-      <aside className="fixed hidden h-screen w-64 flex-col border-r bg-background lg:flex">
-        <div className="flex h-16 items-center gap-2 border-b px-6 font-bold">
-          <Heart className="h-6 w-6 text-primary" />
-          <span>Community Manager</span>
+      <aside className={`fixed hidden h-screen flex-col border-r bg-background transition-all duration-300 ease-in-out lg:flex ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
+        <div className={`flex h-16 items-center border-b px-6 font-bold ${sidebarCollapsed ? 'justify-center px-0' : 'gap-2'}`}>
+          {!sidebarCollapsed && (
+            <>
+              <Heart className="h-6 w-6 text-primary" />
+              <span>Community Manager</span>
+            </>
+          )}
+          {sidebarCollapsed && <Heart className="h-6 w-6 text-primary" />}
         </div>
         <nav className="flex-1 overflow-auto py-4">
           <div className="space-y-1 px-3">
@@ -153,41 +165,66 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${
+                className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium ${
                   isActive(item.href) ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-                }`}
+                } ${sidebarCollapsed ? 'justify-center px-0' : 'gap-3'}`}
+                title={sidebarCollapsed ? item.name : ""}
               >
                 <item.icon className="h-5 w-5" />
-                {item.name}
+                {!sidebarCollapsed && item.name}
               </Link>
             ))}
           </div>
         </nav>
         <div className="border-t p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'justify-between'}`}>
+            {!sidebarCollapsed && (
+              <div className="flex items-center gap-3">
+                <Avatar>
+                  <AvatarImage src={user?.image} />
+                  <AvatarFallback>{userInitials}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm font-medium">{user?.name}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                </div>
+              </div>
+            )}
+            {sidebarCollapsed && (
               <Avatar>
                 <AvatarImage src={user?.image} />
                 <AvatarFallback>{userInitials}</AvatarFallback>
               </Avatar>
-              <div>
-                <p className="text-sm font-medium">{user?.name}</p>
-                <p className="text-xs text-muted-foreground">{user?.email}</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="icon" onClick={toggleTheme}>
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-              <span className="sr-only">Toggle theme</span>
-            </Button>
+            )}
+            {!sidebarCollapsed && (
+              <Button variant="ghost" size="icon" onClick={toggleTheme}>
+                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            )}
           </div>
         </div>
+        {/* Toggle sidebar button */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleSidebar}
+          className="absolute -right-4 top-20 z-10 h-8 w-8 rounded-full border bg-background"
+        >
+          {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          <span className="sr-only">Toggle sidebar</span>
+        </Button>
       </aside>
 
       {/* Main content - with padding to account for fixed sidebar */}
-      <main className="flex-1 lg:ml-64">
+      <main className={`flex-1 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
         {/* Desktop header */}
         <header className="sticky top-0 z-30 hidden h-16 items-center border-b bg-background px-6 lg:flex">
           <div className="flex flex-1 items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-2 lg:flex">
+              <Menu className="h-5 w-5" />
+              <span className="sr-only">Toggle sidebar</span>
+            </Button>
             <form className="relative w-64">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input type="search" placeholder="Search..." className="w-full rounded-lg bg-background pl-8 md:w-64" />
@@ -202,6 +239,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <User className="h-5 w-5" />
               <span className="sr-only">Profile</span>
             </Button>
+            {sidebarCollapsed && (
+              <Button variant="ghost" size="icon" onClick={toggleTheme}>
+                {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                <span className="sr-only">Toggle theme</span>
+              </Button>
+            )}
           </div>
         </header>
 
