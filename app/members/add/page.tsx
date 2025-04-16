@@ -87,6 +87,7 @@ export default function AddMemberPage() {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const totalSteps = 6
   
   const [formData, setFormData] = useState({
@@ -157,6 +158,15 @@ export default function AddMemberPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
+    
+    // Clear error for this field when user types
+    if (errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[name]
+        return newErrors
+      })
+    }
   }
 
   const handleDateChange = (name: string, value: string) => {
@@ -187,10 +197,63 @@ export default function AddMemberPage() {
     setFormData((prev) => ({ ...prev, [name]: value === "" ? 0 : parseInt(value, 10) }))
   }
 
+  const validateCurrentStep = (): boolean => {
+    const newErrors: Record<string, string> = {}
+    
+    // Validate based on current step
+    if (currentStep === 1) {
+      // Personal Information validation
+      if (!formData.firstName.trim()) {
+        newErrors.firstName = "First name is required"
+      }
+      if (!formData.lastName.trim()) {
+        newErrors.lastName = "Last name is required"
+      }
+      if (!formData.dateOfBirth) {
+        newErrors.dateOfBirth = "Date of birth is required"
+      }
+      if (!formData.gender) {
+        newErrors.gender = "Gender is required"
+      }
+      if (!formData.maritalStatus) {
+        newErrors.maritalStatus = "Marital status is required"
+      }
+      if (!formData.residingAddress.trim()) {
+        newErrors.residingAddress = "Address is required"
+      }
+      if (!formData.primaryPhone.trim()) {
+        newErrors.primaryPhone = "Primary phone is required"
+      }
+    }
+    
+    // Add validations for other steps if they have required fields
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const goToNextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1)
-      window.scrollTo(0, 0)
+    if (validateCurrentStep()) {
+      if (currentStep < totalSteps) {
+        setCurrentStep(currentStep + 1)
+        window.scrollTo(0, 0)
+      }
+    } else {
+      // Show a toast for validation errors
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields before proceeding.",
+        variant: "destructive",
+      })
+      
+      // Focus the first field with an error
+      const firstErrorField = Object.keys(errors)[0]
+      if (firstErrorField) {
+        const element = document.getElementById(firstErrorField)
+        if (element) {
+          element.focus()
+        }
+      }
     }
   }
 
@@ -203,6 +266,16 @@ export default function AddMemberPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validateCurrentStep()) {
+      toast({
+        title: "Missing required fields",
+        description: "Please fill in all required fields before submitting.",
+        variant: "destructive",
+      })
+      return
+    }
+    
     setIsSubmitting(true)
 
     try {
@@ -308,7 +381,9 @@ export default function AddMemberPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name*</Label>
+                    <Label htmlFor="firstName" className="flex">
+                      First Name<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Input
                       id="firstName"
                       name="firstName"
@@ -316,10 +391,16 @@ export default function AddMemberPage() {
                       value={formData.firstName}
                       onChange={handleChange}
                       required
+                      className={errors.firstName ? "border-destructive" : ""}
                     />
+                    {errors.firstName && (
+                      <p className="text-xs text-destructive mt-1">{errors.firstName}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name*</Label>
+                    <Label htmlFor="lastName" className="flex">
+                      Last Name<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Input
                       id="lastName"
                       name="lastName"
@@ -327,7 +408,11 @@ export default function AddMemberPage() {
                       value={formData.lastName}
                       onChange={handleChange}
                       required
+                      className={errors.lastName ? "border-destructive" : ""}
                     />
+                    {errors.lastName && (
+                      <p className="text-xs text-destructive mt-1">{errors.lastName}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="preferredName">Preferred Name</Label>
@@ -340,7 +425,9 @@ export default function AddMemberPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth">Date of Birth*</Label>
+                    <Label htmlFor="dateOfBirth" className="flex">
+                      Date of Birth<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Input
                       id="dateOfBirth"
                       name="dateOfBirth"
@@ -348,15 +435,30 @@ export default function AddMemberPage() {
                       value={formData.dateOfBirth}
                       onChange={handleChange}
                       required
+                      className={errors.dateOfBirth ? "border-destructive" : ""}
                     />
+                    {errors.dateOfBirth && (
+                      <p className="text-xs text-destructive mt-1">{errors.dateOfBirth}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Gender*</Label>
+                    <Label htmlFor="gender" className="flex">
+                      Gender<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Select 
                       value={formData.gender} 
-                      onValueChange={(value) => handleSelectChange("gender", value)}
+                      onValueChange={(value) => {
+                        handleSelectChange("gender", value)
+                        if (errors.gender) {
+                          setErrors((prev) => {
+                            const newErrors = {...prev}
+                            delete newErrors.gender
+                            return newErrors
+                          })
+                        }
+                      }}
                     >
-                      <SelectTrigger id="gender">
+                      <SelectTrigger id="gender" className={errors.gender ? "border-destructive" : ""}>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -365,14 +467,28 @@ export default function AddMemberPage() {
                         <SelectItem value={Gender.OTHER}>Other</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.gender && (
+                      <p className="text-xs text-destructive mt-1">{errors.gender}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maritalStatus">Marital Status*</Label>
+                    <Label htmlFor="maritalStatus" className="flex">
+                      Marital Status<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Select 
                       value={formData.maritalStatus} 
-                      onValueChange={(value) => handleSelectChange("maritalStatus", value)}
+                      onValueChange={(value) => {
+                        handleSelectChange("maritalStatus", value)
+                        if (errors.maritalStatus) {
+                          setErrors((prev) => {
+                            const newErrors = {...prev}
+                            delete newErrors.maritalStatus
+                            return newErrors
+                          })
+                        }
+                      }}
                     >
-                      <SelectTrigger id="maritalStatus">
+                      <SelectTrigger id="maritalStatus" className={errors.maritalStatus ? "border-destructive" : ""}>
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -383,10 +499,15 @@ export default function AddMemberPage() {
                         <SelectItem value={MaritalStatus.SEPARATED}>Separated</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors.maritalStatus && (
+                      <p className="text-xs text-destructive mt-1">{errors.maritalStatus}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="residingAddress">Residing Address*</Label>
+                  <Label htmlFor="residingAddress" className="flex">
+                    Residing Address<span className="text-destructive ml-1">*</span>
+                  </Label>
                   <Input
                     id="residingAddress"
                     name="residingAddress"
@@ -394,11 +515,17 @@ export default function AddMemberPage() {
                     value={formData.residingAddress}
                     onChange={handleChange}
                     required
+                    className={errors.residingAddress ? "border-destructive" : ""}
                   />
+                  {errors.residingAddress && (
+                    <p className="text-xs text-destructive mt-1">{errors.residingAddress}</p>
+                  )}
                 </div>
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="primaryPhone">Primary Phone*</Label>
+                    <Label htmlFor="primaryPhone" className="flex">
+                      Primary Phone<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Input
                       id="primaryPhone"
                       name="primaryPhone"
@@ -406,7 +533,11 @@ export default function AddMemberPage() {
                       value={formData.primaryPhone}
                       onChange={handleChange}
                       required
+                      className={errors.primaryPhone ? "border-destructive" : ""}
                     />
+                    {errors.primaryPhone && (
+                      <p className="text-xs text-destructive mt-1">{errors.primaryPhone}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="secondaryPhone">Secondary Phone</Label>
