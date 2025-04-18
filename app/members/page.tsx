@@ -160,7 +160,11 @@ export default function MembersPage() {
                   </TableRow>
                 ) : (
                   filteredMembers.map((member) => (
-                    <TableRow key={member.id}>
+                    <TableRow 
+                      key={member.id} 
+                      className="cursor-pointer hover:bg-muted/50" 
+                      onClick={() => router.push(`/members/${member.id}`)}
+                    >
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar>
@@ -185,7 +189,11 @@ export default function MembersPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={(e) => e.stopPropagation()} // Prevent row click when clicking dropdown
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                               <span className="sr-only">Actions</span>
                             </Button>
@@ -194,11 +202,14 @@ export default function MembersPage() {
                             <DropdownMenuItem onClick={() => router.push(`/members/${member.id}`)}>
                               View Profile
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => router.push(`/members/${member.id}/edit`)}>
+                            <DropdownMenuItem onClick={(e) => {
+                              e.stopPropagation(); // Prevent row click
+                              router.push(`/members/${member.id}/edit`);
+                            }}>
                               Edit Member
                             </DropdownMenuItem>
-                            <DropdownMenuItem>Record Attendance</DropdownMenuItem>
-                            <DropdownMenuItem>Send Message</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Record Attendance</DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Send Message</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
