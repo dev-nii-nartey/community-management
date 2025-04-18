@@ -7,13 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, Edit, UserPlus, MessageSquare } from "lucide-react"
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Clock, Edit, UserPlus, MessageSquare, ArrowRight, Briefcase, Building2, User, Users } from "lucide-react"
 import { members } from "@/lib/data"
 
 export default function MemberProfilePage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const [member, setMember] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [contactPage, setContactPage] = useState(1)
+  const totalContactPages = 3
 
   useEffect(() => {
     // In a real app, this would be an API call to fetch the member
@@ -74,6 +76,10 @@ export default function MemberProfilePage({ params }: { params: { id: string } }
     }
   }
 
+  const nextContactPage = () => {
+    setContactPage((prev) => (prev === totalContactPages ? 1 : prev + 1))
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -113,46 +119,142 @@ export default function MemberProfilePage({ params }: { params: { id: string } }
         </Card>
 
         <Card className="md:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Contact Information</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={nextContactPage} 
+              title={`Page ${contactPage} of ${totalContactPages}`}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-3">
-              <Mail className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Email</div>
-                <div>{member.email}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Phone className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Phone</div>
-                <div>{member.phone}</div>
-              </div>
-            </div>
-            {member.address && (
-              <div className="flex items-center gap-3">
-                <MapPin className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <div className="font-medium">Address</div>
-                  <div>{member.address}</div>
+            {contactPage === 1 && (
+              <>
+                <div className="flex items-center gap-3">
+                  <Mail className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Email</div>
+                    <div>{member.email}</div>
+                  </div>
                 </div>
-              </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Phone</div>
+                    <div>{member.phone}</div>
+                  </div>
+                </div>
+                {member.address && (
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <div className="font-medium">Address</div>
+                      <div>{member.address}</div>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Join Date</div>
+                    <div>{member.joinDate}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Last Attendance</div>
+                    <div>{member.lastAttendance || "Never"}</div>
+                  </div>
+                </div>
+              </>
             )}
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Join Date</div>
-                <div>{member.joinDate}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-muted-foreground" />
-              <div>
-                <div className="font-medium">Last Attendance</div>
-                <div>{member.lastAttendance || "Never"}</div>
-              </div>
+            
+            {contactPage === 2 && (
+              <>
+                <div className="flex items-center gap-3">
+                  <Briefcase className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Occupation</div>
+                    <div>{member.occupation || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Employer</div>
+                    <div>{member.employer || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Date of Birth</div>
+                    <div>{member.dateOfBirth || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <User className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Gender</div>
+                    <div>{member.gender || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Marital Status</div>
+                    <div>{member.maritalStatus || "Not specified"}</div>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            {contactPage === 3 && (
+              <>
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Emergency Contact</div>
+                    <div>{member.emergencyContact || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Phone className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Emergency Contact Phone</div>
+                    <div>{member.emergencyContactPhone || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Users className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Relation</div>
+                    <div>{member.emergencyContactRelationship || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Date of Salvation</div>
+                    <div>{member.dateOfSalvation || "Not specified"}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium">Baptism Date</div>
+                    <div>{member.baptismDate || "Not specified"}</div>
+                  </div>
+                </div>
+              </>
+            )}
+            
+            <div className="flex justify-center mt-2 text-xs text-muted-foreground">
+              Page {contactPage} of {totalContactPages}
             </div>
           </CardContent>
         </Card>
