@@ -119,6 +119,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                           key={item.name}
                           href={item.href}
                           onClick={close}
+                          prefetch={true}
                           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium ${
                             isActive(item.href) ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                           }`}
@@ -165,6 +166,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch={true}
                 className={`flex items-center rounded-lg px-3 py-2 text-sm font-medium ${
                   isActive(item.href) ? "bg-primary text-primary-foreground" : "hover:bg-muted"
                 } ${sidebarCollapsed ? 'justify-center px-0' : 'gap-3'}`}
