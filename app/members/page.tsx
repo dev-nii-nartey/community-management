@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,61 +12,73 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserPlus, Search, MoreHorizontal, Filter, Download } from "lucide-react"
 
-// Mock data for members
-const members = [
-  {
-    id: "1",
-    name: "Alice Johnson",
-    email: "alice@example.com",
-    phone: "(555) 123-4567",
-    status: "active",
-    joinDate: "Jan 15, 2023",
-    lastAttendance: "2 days ago",
-  },
-  {
-    id: "2",
-    name: "Bob Smith",
-    email: "bob@example.com",
-    phone: "(555) 234-5678",
-    status: "active",
-    joinDate: "Mar 3, 2023",
-    lastAttendance: "1 week ago",
-  },
-  {
-    id: "3",
-    name: "Carol Williams",
-    email: "carol@example.com",
-    phone: "(555) 345-6789",
-    status: "inactive",
-    joinDate: "Jun 12, 2022",
-    lastAttendance: "3 months ago",
-  },
-  {
-    id: "4",
-    name: "David Brown",
-    email: "david@example.com",
-    phone: "(555) 456-7890",
-    status: "active",
-    joinDate: "Nov 5, 2023",
-    lastAttendance: "Yesterday",
-  },
-  {
-    id: "5",
-    name: "Eva Martinez",
-    email: "eva@example.com",
-    phone: "(555) 567-8901",
-    status: "pending",
-    joinDate: "Dec 20, 2023",
-    lastAttendance: "Never",
-  },
-]
+// Interface matching the Java MemberSummaryDto
+interface ApiMember {
+  id: string;
+  firstName: string;
+  lastName: string;
+  primaryPhone: string;
+  dateJoinedChurch: string;
+  emailAddress: string;
+  attendanceStatus: "ACTIVE" | "INACTIVE" | null;
+  lastAttendance: string;
+}
+
+// Interface for our UI display format
+interface DisplayMember {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  status: string;
+  joinDate: string;
+  lastAttendance: string;
+}
+
+interface ApiResponse {
+  content: ApiMember[];
+  page: {
+    size: number;
+    number: number;
+    totalElements: number;
+    totalPages: number;
+  };
+}
 
 export default function MembersPage() {
   const router = useRouter()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
+  const [members, setMembers] = useState<DisplayMember[]>([])
 
-  const filteredMembers = members.filter((member) => {
+  useEffect(() => {
+    const fetchMembers = async () => {
+      try {
+        const response = await fetch("http://localhost:8080/api/v1/rehic/members")
+        const data: ApiResponse = await response.json()
+        
+        // Transform the API data to match our component's expected format
+        const transformedMembers = data.content.map((apiMember: ApiMember) => ({
+          id: apiMember.id, 
+          name: `${apiMember.firstName} ${apiMember.lastName}`,
+          email: apiMember.emailAddress,
+          phone: apiMember.primaryPhone,
+          status: apiMember.attendanceStatus?.toLowerCase() || "active",
+          joinDate: new Date(apiMember.dateJoinedChurch).toLocaleDateString(),
+          lastAttendance: apiMember.lastAttendance ? new Date(apiMember.lastAttendance).toLocaleDateString() : "N/A"
+        }));
+        
+        setMembers(transformedMembers)
+      } catch (error) {
+        console.error("Failed to fetch members:", error)
+        setMembers([])
+      }
+    }
+    
+    fetchMembers()
+  }, [])
+
+  const filteredMembers = Array.isArray(members) ? members.filter((member) => {
     const matchesSearch =
       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       member.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -75,7 +87,7 @@ export default function MembersPage() {
     const matchesStatus = statusFilter === "all" || member.status === statusFilter
 
     return matchesSearch && matchesStatus
-  })
+  }) : []
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -86,7 +98,7 @@ export default function MembersPage() {
       case "pending":
         return <Badge variant="outline">Pending</Badge>
       default:
-        return null
+        return <Badge variant="outline">Unknown</Badge>
     }
   }
 
@@ -171,7 +183,7 @@ export default function MembersPage() {
                             <AvatarFallback>
                               {member.name
                                 .split(" ")
-                                .map((n) => n[0])
+                                .map((n: string) => n[0])
                                 .join("")}
                             </AvatarFallback>
                           </Avatar>
