@@ -285,16 +285,28 @@ export default function AddMemberPage() {
     setIsSubmitting(true);
 
     try {
-      // In a real app, this would be an API call to create the member
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch('http://localhost:8080/api/v1/rehic/members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
 
       toast({
-        title: "Member added",
+        title: "Member added successfully",
         description: `${formData.firstName} ${formData.lastName} has been added to your community.`,
       });
 
       router.push("/members");
     } catch (error) {
+      console.error('Error submitting form:', error);
       toast({
         title: "Error",
         description: "There was an error adding the member. Please try again.",
