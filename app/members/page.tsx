@@ -175,7 +175,7 @@ export default function MembersPage() {
                     <TableRow 
                       key={member.id} 
                       className="cursor-pointer hover:bg-muted/50" 
-                      onClick={() => router.push(`/members/${member.id}`)}
+                      onClick={() => router.push(`/members/${member.email}`)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -211,12 +211,12 @@ export default function MembersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => router.push(`/members/${member.id}`)}>
+                            <DropdownMenuItem onClick={() => router.push(`/members/${member.email}`)}>
                               View Profile
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation(); // Prevent row click
-                              router.push(`/members/${member.id}/edit`);
+                              router.push(`/members/${member.email}/edit`);
                             }}>
                               Edit Member
                             </DropdownMenuItem>
