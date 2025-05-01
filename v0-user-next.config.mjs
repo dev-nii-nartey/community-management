@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Optimize compilation and bundling
-  swcMinify: true,
+  // swcMinify is no longer needed as it's the default in newer Next.js versions
   
   // Optimize large pages
   compiler: {
@@ -13,13 +13,18 @@ const nextConfig = {
   experimental: {
     // Enable app directory optimizations
     optimizeCss: true,
-    // Enable turbopack for fast dev experience if compatible
-    turbo: { loaders: { '.js': 'jsx' } },
-    // Enable server components optimization
-    serverComponentsExternalPackages: [],
+    // Fix turbo configuration
+    turbo: { 
+      loaders: { 
+        '.js': ['jsx'] 
+      } 
+    },
     // Optimize images
     optimizeServerReact: true,
   },
+  
+  // serverExternalPackages instead of serverComponentsExternalPackages
+  serverExternalPackages: [],
   
   // Optimize routing
   reactStrictMode: true,

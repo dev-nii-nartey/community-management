@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserPlus, Search, MoreHorizontal, Filter, Download } from "lucide-react"
+import { API_ENDPOINTS } from "@/app/config/api"
 
 // Interface matching the Java MemberSummaryDto
 interface ApiMember {
@@ -54,9 +55,11 @@ export default function MembersPage() {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/v1/rehic/members")
+        const response = await fetch(API_ENDPOINTS.members)
         const data: ApiResponse = await response.json()
         
+        console.error("Fetched members now:", data)
+
         // Transform the API data to match our component's expected format
         const transformedMembers = data.content.map((apiMember: ApiMember) => ({
           id: apiMember.id, 
@@ -175,7 +178,7 @@ export default function MembersPage() {
                     <TableRow 
                       key={member.id} 
                       className="cursor-pointer hover:bg-muted/50" 
-                      onClick={() => router.push(`/members/${member.email}`)}
+                      onClick={() => router.push(`/members/${member.id}`)}
                     >
                       <TableCell>
                         <div className="flex items-center gap-3">
