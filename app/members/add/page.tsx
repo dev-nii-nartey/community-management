@@ -11,10 +11,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { format } from "date-fns"
+import { API_ENDPOINTS } from "@/app/config/api"
 
 // Define enum types to match backend
 enum Gender {
@@ -32,10 +32,8 @@ enum MaritalStatus {
 }
 
 enum AttendanceStatus {
-  REGULAR = "REGULAR",
-  OCCASIONAL = "OCCASIONAL",
-  INACTIVE = "INACTIVE",
-  FIRST_TIME = "FIRST_TIME"
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE"
 }
 
 // Ministry options
@@ -99,7 +97,7 @@ export default function AddMemberPage() {
     // Church Information
     ministriesOfInterest: [] as string[],
     skills: [] as string[],
-    attendanceStatus: AttendanceStatus.REGULAR,
+    attendanceStatus: AttendanceStatus.ACTIVE,
     lastAttendance: format(new Date(), "yyyy-MM-dd"),
     joinDate: format(new Date(), "yyyy-MM-dd"),
     baptized: false,
@@ -238,19 +236,77 @@ export default function AddMemberPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/v1/rehic/members', {
+      // Format dates in a way that Java's LocalDate can parse
+      const formatDateForJava = (dateString: string | null) => {
+        if (!dateString) return null;
+        // Make sure it's in yyyy-MM-dd format for Java's LocalDate
+        return dateString;
+      };
+      
+      // Create data structure that exactly matches MemberDto in the backend
+      const memberData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        dateOfBirth: formatDateForJava(formData.dateOfBirth),
+        gender: formData.gender,
+        maritalStatus: formData.maritalStatus,
+        residingAddress: formData.residingAddress,
+        primaryPhone: formData.primaryPhone,
+        attendanceStatus: formData.attendanceStatus,
+        // Ensure lists are never null/undefined - use empty arrays if needed
+        ministriesOfInterest: formData.ministriesOfInterest.length > 0 ? formData.ministriesOfInterest : [],
+        // Boolean using primitive type to match Java boolean
+        isDeleted: Boolean(formData.isDeleted),
+        emailAddress: formData.emailAddress,
+        emergencyContact: formData.emergencyContact,
+        emergencyContactRelationship: formData.emergencyContactRelationship,
+        occupation: formData.occupation || "",
+        // Ensure lists are never null/undefined
+        skills: formData.skills.length > 0 ? formData.skills : [],
+        lastAttendance: formatDateForJava(formData.lastAttendance),
+        joinDate: formatDateForJava(formData.joinDate),
+        // Boolean object to match Java Boolean
+        baptized: formData.baptized
+      };
+      
+      console.log("Sending member data to backend:", JSON.stringify(memberData));
+      
+      const response = await fetch(API_ENDPOINTS.member, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(memberData)
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get more detailed error information from the response
+        let errorDetail = "";
+        try {
+          const errorResponse = await response.text();
+          console.error("Error response text:", errorResponse);
+          
+          if (errorResponse) {
+            try {
+              const jsonError = JSON.parse(errorResponse);
+              console.error("Parsed error response:", jsonError);
+              errorDetail = jsonError.message || jsonError.error || JSON.stringify(jsonError);
+            } catch (parseError) {
+              errorDetail = errorResponse;
+            }
+          } else {
+            errorDetail = "No error details returned from server";
+          }
+        } catch (e) {
+          errorDetail = "Could not parse error response";
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorDetail}`);
       }
 
       const data = await response.json();
+      console.log("Success response:", data);
 
       toast({
         title: "Member added successfully",
@@ -262,7 +318,7 @@ export default function AddMemberPage() {
       console.error('Error submitting form:', error);
       toast({
         title: "Error",
-        description: "There was an error adding the member. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error adding the member. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -590,10 +646,8 @@ export default function AddMemberPage() {
                         <SelectValue placeholder="Select attendance status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={AttendanceStatus.REGULAR}>Regular</SelectItem>
-                        <SelectItem value={AttendanceStatus.OCCASIONAL}>Occasional</SelectItem>
+                        <SelectItem value={AttendanceStatus.ACTIVE}>Active</SelectItem>
                         <SelectItem value={AttendanceStatus.INACTIVE}>Inactive</SelectItem>
-                        <SelectItem value={AttendanceStatus.FIRST_TIME}>First Time</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
