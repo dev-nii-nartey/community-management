@@ -58,7 +58,7 @@ export default function MembersPage() {
         const response = await fetch(API_ENDPOINTS.members)
         const data: ApiResponse = await response.json()
         
-        console.error("Fetched members now:", data)
+        // console.error("Fetched members now:", data)
 
         // Transform the API data to match our component's expected format
         const transformedMembers = data.content.map((apiMember: ApiMember) => ({
