@@ -252,7 +252,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Add top padding for mobile to account for fixed header */}
         <div className="pt-16 lg:pt-0">
-          <div className="mx-auto max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+          <div className="container mx-auto max-w-screen-xl px-4 py-6 sm:px-6 lg:px-8 flex justify-center">
+            <div className="w-full">{children}</div>
+          </div>
         </div>
       </main>
     </div>

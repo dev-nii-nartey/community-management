@@ -26,7 +26,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b bg-background">
-        <div className="container flex h-16 items-center justify-between py-4">
+        <div className="container max-w-7xl mx-auto flex h-16 items-center justify-between py-4 px-4">
           <div className="flex items-center gap-2 font-bold">
             <Heart className="h-6 w-6 text-primary" />
             <span>Community Manager</span>
@@ -54,7 +54,7 @@ export default function Home() {
         </div>
       </header>
       <main className="flex-1">
-        <section className="container py-24 sm:py-32">
+        <section className="container max-w-7xl mx-auto py-24 sm:py-32 px-4">
           <div className="grid gap-8 md:grid-cols-2 md:gap-12">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
@@ -88,7 +88,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="features" className="container py-24 sm:py-32 border-t">
+        <section id="features" className="container max-w-7xl mx-auto py-24 sm:py-32 border-t px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Powerful Features</h2>
             <p className="mx-auto mt-4 max-w-[700px] text-muted-foreground md:text-xl">
@@ -172,7 +172,7 @@ export default function Home() {
         </section>
       </main>
       <footer className="border-t py-12">
-        <div className="container flex flex-col items-center justify-between gap-4 md:flex-row">
+        <div className="container max-w-7xl mx-auto flex flex-col items-center justify-between gap-4 md:flex-row px-4">
           <div className="flex items-center gap-2 font-bold">
             <Heart className="h-6 w-6 text-primary" />
             <span>Community Manager</span>
