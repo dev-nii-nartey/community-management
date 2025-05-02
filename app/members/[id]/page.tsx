@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Calendar, Mail, Phone } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { API_ENDPOINTS } from "@/app/config/api"
 
 interface Member {
   id: string
@@ -40,7 +41,8 @@ export default function MemberProfilePage() {
     const fetchMember = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`http://localhost:8080/api/v1/rehic/members/${params.email}`)
+        // Fetch member by ID using the API config
+        const response = await fetch(`${API_ENDPOINTS.members}/${params.id}`)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -61,10 +63,10 @@ export default function MemberProfilePage() {
       }
     }
 
-    if (params.email) {
+    if (params.id) {
       fetchMember()
     }
-  }, [params.email, router, toast])
+  }, [params.id, router, toast])
 
   if (loading) {
     return (
@@ -143,7 +145,7 @@ export default function MemberProfilePage() {
             <Button variant="outline" size="sm" onClick={() => router.push(`/messages/compose?to=${member.emailAddress}`)}>
               Send Message
             </Button>
-            <Button size="sm" onClick={() => router.push(`/members/edit/${member.emailAddress}`)}>
+            <Button size="sm" onClick={() => router.push(`/members/edit/${member.id}`)}>
               Edit Profile
             </Button>
           </CardFooter>

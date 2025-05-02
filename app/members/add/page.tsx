@@ -11,10 +11,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useToast } from "@/hooks/use-toast"
 import { ArrowLeft, ArrowRight } from "lucide-react"
 import { format } from "date-fns"
+import { API_ENDPOINTS } from "@/app/config/api"
 
 // Define enum types to match backend
 enum Gender {
@@ -31,6 +31,11 @@ enum MaritalStatus {
   SEPARATED = "SEPARATED"
 }
 
+enum AttendanceStatus {
+  ACTIVE = "ACTIVE",
+  INACTIVE = "INACTIVE"
+}
+
 // Ministry options
 const ministryOptions = [
   "Worship Team",
@@ -45,23 +50,6 @@ const ministryOptions = [
   "Counseling",
   "Visitation",
   "Ushering"
-];
-
-// Spiritual gifts options
-const spiritualGiftsOptions = [
-  "Teaching",
-  "Prophesy",
-  "Service",
-  "Leadership",
-  "Exhortation",
-  "Giving",
-  "Mercy",
-  "Wisdom",
-  "Knowledge",
-  "Faith",
-  "Discernment",
-  "Helps",
-  "Administration"
 ];
 
 // Skills options
@@ -88,70 +76,33 @@ export default function AddMemberPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [currentStep, setCurrentStep] = useState(1)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const totalSteps = 6
+  const totalSteps = 4 // Reduced from 6 to 4 steps
   
   const [formData, setFormData] = useState({
-    // Basic registration info
-    branchName: "",
-    registrationDate: format(new Date(), "yyyy-MM-dd"),
-    
     // Personal Information
     firstName: "",
     lastName: "",
-    preferredName: "",
+    emailAddress: "",
     dateOfBirth: "",
     gender: Gender.MALE,
     maritalStatus: MaritalStatus.SINGLE,
-    residingAddress: "",
     primaryPhone: "",
-    secondaryPhone: "",
-    emailAddress: "",
     occupation: "",
-    employer: "",
+    residingAddress: "",
     
-    // Family Information
-    spouseName: "",
-    spousePhone: "",
-    fatherName: "",
-    fatherHometown: "",
-    fatherContact: "",
-    motherName: "",
-    motherHometown: "",
-    motherContact: "",
-    emergencyContactPhone: "",
+    // Emergency Contact
+    emergencyContact: "",
     emergencyContactRelationship: "",
     
-    // Spiritual Journey
-    dateJoinedChurch: "",
-    baptizedWithHolySpirit: false,
-    dateOfSalvation: "",
-    baptismDate: "",
-    previousChurchAffiliation: "",
-    yearsAttended: 0,
-    
-    // Ministry and Skills
+    // Church Information
     ministriesOfInterest: [] as string[],
-    spiritualGifts: [] as string[],
     skills: [] as string[],
+    attendanceStatus: AttendanceStatus.ACTIVE,
+    lastAttendance: format(new Date(), "yyyy-MM-dd"),
+    joinDate: format(new Date(), "yyyy-MM-dd"),
+    baptized: false,
     
-    // Faith and Commitment
-    agreeWithBibleIsInspiredWord: false,
-    agreeWithSalvationThroughFaith: false,
-    agreeWithJesusSonOfGod: false,
-    commitmentAttendServices: false,
-    commitmentSupportActivities: false,
-    commitmentTithe: false,
-    commitmentLiveChristianValues: false,
-    signatureDate: format(new Date(), "yyyy-MM-dd"),
-    
-    // Consent and Privacy
-    consentContactPermission: false,
-    consentPhotoUse: false,
-    consentSignatureDate: format(new Date(), "yyyy-MM-dd"),
-    
-    // Additional Information
-    specialNeeds: "",
-    howDidYouHear: "",
+    // System field
     isDeleted: false
   })
 
@@ -209,24 +160,24 @@ export default function AddMemberPage() {
       if (!formData.lastName.trim()) {
         newErrors.lastName = "Last name is required"
       }
-      if (!formData.dateOfBirth) {
-        newErrors.dateOfBirth = "Date of birth is required"
-      }
-      if (!formData.gender) {
-        newErrors.gender = "Gender is required"
-      }
-      if (!formData.maritalStatus) {
-        newErrors.maritalStatus = "Marital status is required"
-      }
-      if (!formData.residingAddress.trim()) {
-        newErrors.residingAddress = "Address is required"
+      if (!formData.emailAddress.trim()) {
+        newErrors.emailAddress = "Email address is required"
       }
       if (!formData.primaryPhone.trim()) {
         newErrors.primaryPhone = "Primary phone is required"
       }
+      if (!formData.residingAddress.trim()) {
+        newErrors.residingAddress = "Address is required"
+      }
+    } else if (currentStep === 2) {
+      // Emergency Contact validation
+      if (!formData.emergencyContact.trim()) {
+        newErrors.emergencyContact = "Emergency contact is required"
+      }
+      if (!formData.emergencyContactRelationship.trim()) {
+        newErrors.emergencyContactRelationship = "Relationship is required"
+      }
     }
-    
-    // Add validations for other steps if they have required fields
     
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -285,19 +236,77 @@ export default function AddMemberPage() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/v1/rehic/members', {
+      // Format dates in a way that Java's LocalDate can parse
+      const formatDateForJava = (dateString: string | null) => {
+        if (!dateString) return null;
+        // Make sure it's in yyyy-MM-dd format for Java's LocalDate
+        return dateString;
+      };
+      
+      // Create data structure that exactly matches MemberDto in the backend
+      const memberData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        dateOfBirth: formatDateForJava(formData.dateOfBirth),
+        gender: formData.gender,
+        maritalStatus: formData.maritalStatus,
+        residingAddress: formData.residingAddress,
+        primaryPhone: formData.primaryPhone,
+        attendanceStatus: formData.attendanceStatus,
+        // Ensure lists are never null/undefined - use empty arrays if needed
+        ministriesOfInterest: formData.ministriesOfInterest.length > 0 ? formData.ministriesOfInterest : [],
+        // Boolean using primitive type to match Java boolean
+        isDeleted: Boolean(formData.isDeleted),
+        emailAddress: formData.emailAddress,
+        emergencyContact: formData.emergencyContact,
+        emergencyContactRelationship: formData.emergencyContactRelationship,
+        occupation: formData.occupation || "",
+        // Ensure lists are never null/undefined
+        skills: formData.skills.length > 0 ? formData.skills : [],
+        lastAttendance: formatDateForJava(formData.lastAttendance),
+        joinDate: formatDateForJava(formData.joinDate),
+        // Boolean object to match Java Boolean
+        baptized: formData.baptized
+      };
+      
+      console.log("Sending member data to backend:", JSON.stringify(memberData));
+      
+      const response = await fetch(API_ENDPOINTS.member, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(memberData)
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // Try to get more detailed error information from the response
+        let errorDetail = "";
+        try {
+          const errorResponse = await response.text();
+          console.error("Error response text:", errorResponse);
+          
+          if (errorResponse) {
+            try {
+              const jsonError = JSON.parse(errorResponse);
+              console.error("Parsed error response:", jsonError);
+              errorDetail = jsonError.message || jsonError.error || JSON.stringify(jsonError);
+            } catch (parseError) {
+              errorDetail = errorResponse;
+            }
+          } else {
+            errorDetail = "No error details returned from server";
+          }
+        } catch (e) {
+          errorDetail = "Could not parse error response";
+        }
+        
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorDetail}`);
       }
 
       const data = await response.json();
+      console.log("Success response:", data);
 
       toast({
         title: "Member added successfully",
@@ -309,7 +318,7 @@ export default function AddMemberPage() {
       console.error('Error submitting form:', error);
       toast({
         title: "Error",
-        description: "There was an error adding the member. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error adding the member. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -343,11 +352,9 @@ export default function AddMemberPage() {
         <div className="text-center text-sm text-muted-foreground">
           Step {currentStep} of {totalSteps}: {
             currentStep === 1 ? "Personal Information" :
-            currentStep === 2 ? "Family Information" :
-            currentStep === 3 ? "Spiritual Journey" :
-            currentStep === 4 ? "Ministry & Skills" :
-            currentStep === 5 ? "Faith & Commitment" :
-            "Consent & Additional Info"
+            currentStep === 2 ? "Emergency Contact" :
+            currentStep === 3 ? "Ministry & Skills" :
+            "Church Information"
           }
         </div>
       </div>
@@ -357,19 +364,15 @@ export default function AddMemberPage() {
           <CardHeader>
             <CardTitle>
               {currentStep === 1 ? "Personal Information" :
-               currentStep === 2 ? "Family Information" :
-               currentStep === 3 ? "Spiritual Journey" :
-               currentStep === 4 ? "Ministry & Skills" :
-               currentStep === 5 ? "Faith & Commitment" :
-               "Consent & Additional Information"}
+               currentStep === 2 ? "Emergency Contact" :
+               currentStep === 3 ? "Ministry & Skills" :
+               "Church Information"}
             </CardTitle>
             <CardDescription>
               {currentStep === 1 ? "Enter the personal details of the new member." :
-               currentStep === 2 ? "Provide information about the member's family." :
-               currentStep === 3 ? "Details about the member's spiritual journey." :
-               currentStep === 4 ? "Select the member's ministries of interest, spiritual gifts, and skills." :
-               currentStep === 5 ? "Faith declarations and commitments." :
-               "Consent permissions and additional information."}
+               currentStep === 2 ? "Provide emergency contact information." :
+               currentStep === 3 ? "Select the member's ministries of interest and skills." :
+               "Details about the member's church involvement."}
             </CardDescription>
           </CardHeader>
           
@@ -378,26 +381,6 @@ export default function AddMemberPage() {
             {currentStep === 1 && (
               <>
                 <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="branchName">Branch Name</Label>
-                    <Input
-                      id="branchName"
-                      name="branchName"
-                      placeholder="Main Branch"
-                      value={formData.branchName}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="registrationDate">Registration Date</Label>
-                    <Input
-                      id="registrationDate"
-                      name="registrationDate"
-                      type="date"
-                      value={formData.registrationDate}
-                      onChange={handleChange}
-                    />
-                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="firstName" className="flex">
                       First Name<span className="text-destructive ml-1">*</span>
@@ -433,18 +416,26 @@ export default function AddMemberPage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="preferredName">Preferred Name</Label>
+                    <Label htmlFor="emailAddress" className="flex">
+                      Email Address<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Input
-                      id="preferredName"
-                      name="preferredName"
-                      placeholder="Johnny"
-                      value={formData.preferredName}
+                      id="emailAddress"
+                      name="emailAddress"
+                      type="email"
+                      placeholder="john.doe@example.com"
+                      value={formData.emailAddress}
                       onChange={handleChange}
+                      required
+                      className={errors.emailAddress ? "border-destructive" : ""}
                     />
+                    {errors.emailAddress && (
+                      <p className="text-xs text-destructive mt-1">{errors.emailAddress}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="dateOfBirth" className="flex">
-                      Date of Birth<span className="text-destructive ml-1">*</span>
+                    <Label htmlFor="dateOfBirth">
+                      Date of Birth
                     </Label>
                     <Input
                       id="dateOfBirth"
@@ -452,31 +443,19 @@ export default function AddMemberPage() {
                       type="date"
                       value={formData.dateOfBirth}
                       onChange={handleChange}
-                      required
-                      className={errors.dateOfBirth ? "border-destructive" : ""}
                     />
-                    {errors.dateOfBirth && (
-                      <p className="text-xs text-destructive mt-1">{errors.dateOfBirth}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="gender" className="flex">
-                      Gender<span className="text-destructive ml-1">*</span>
+                    <Label htmlFor="gender">
+                      Gender
                     </Label>
                     <Select 
                       value={formData.gender} 
                       onValueChange={(value) => {
                         handleSelectChange("gender", value)
-                        if (errors.gender) {
-                          setErrors((prev) => {
-                            const newErrors = {...prev}
-                            delete newErrors.gender
-                            return newErrors
-                          })
-                        }
                       }}
                     >
-                      <SelectTrigger id="gender" className={errors.gender ? "border-destructive" : ""}>
+                      <SelectTrigger id="gender">
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -485,29 +464,19 @@ export default function AddMemberPage() {
                         <SelectItem value={Gender.OTHER}>Other</SelectItem>
                       </SelectContent>
                     </Select>
-                    {errors.gender && (
-                      <p className="text-xs text-destructive mt-1">{errors.gender}</p>
-                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maritalStatus" className="flex">
-                      Marital Status<span className="text-destructive ml-1">*</span>
+                    <Label htmlFor="maritalStatus">
+                      Marital Status
                     </Label>
                     <Select 
                       value={formData.maritalStatus} 
                       onValueChange={(value) => {
                         handleSelectChange("maritalStatus", value)
-                        if (errors.maritalStatus) {
-                          setErrors((prev) => {
-                            const newErrors = {...prev}
-                            delete newErrors.maritalStatus
-                            return newErrors
-                          })
-                        }
                       }}
                     >
-                      <SelectTrigger id="maritalStatus" className={errors.maritalStatus ? "border-destructive" : ""}>
-                        <SelectValue placeholder="Select status" />
+                      <SelectTrigger id="maritalStatus">
+                        <SelectValue placeholder="Select marital status" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={MaritalStatus.SINGLE}>Single</SelectItem>
@@ -517,29 +486,7 @@ export default function AddMemberPage() {
                         <SelectItem value={MaritalStatus.SEPARATED}>Separated</SelectItem>
                       </SelectContent>
                     </Select>
-                    {errors.maritalStatus && (
-                      <p className="text-xs text-destructive mt-1">{errors.maritalStatus}</p>
-                    )}
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="residingAddress" className="flex">
-                    Residing Address<span className="text-destructive ml-1">*</span>
-                  </Label>
-                  <Input
-                    id="residingAddress"
-                    name="residingAddress"
-                    placeholder="123 Main St, Anytown, USA"
-                    value={formData.residingAddress}
-                    onChange={handleChange}
-                    required
-                    className={errors.residingAddress ? "border-destructive" : ""}
-                  />
-                  {errors.residingAddress && (
-                    <p className="text-xs text-destructive mt-1">{errors.residingAddress}</p>
-                  )}
-                </div>
-                <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="primaryPhone" className="flex">
                       Primary Phone<span className="text-destructive ml-1">*</span>
@@ -547,7 +494,7 @@ export default function AddMemberPage() {
                     <Input
                       id="primaryPhone"
                       name="primaryPhone"
-                      placeholder="(555) 123-4567"
+                      placeholder="+1 (555) 123-4567"
                       value={formData.primaryPhone}
                       onChange={handleChange}
                       required
@@ -558,28 +505,9 @@ export default function AddMemberPage() {
                     )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="secondaryPhone">Secondary Phone</Label>
-                    <Input
-                      id="secondaryPhone"
-                      name="secondaryPhone"
-                      placeholder="(555) 987-6543"
-                      value={formData.secondaryPhone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="emailAddress">Email Address</Label>
-                    <Input
-                      id="emailAddress"
-                      name="emailAddress"
-                      type="email"
-                      placeholder="john@example.com"
-                      value={formData.emailAddress}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="occupation">Occupation</Label>
+                    <Label htmlFor="occupation">
+                      Occupation
+                    </Label>
                     <Input
                       id="occupation"
                       name="occupation"
@@ -588,203 +516,71 @@ export default function AddMemberPage() {
                       onChange={handleChange}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="employer">Employer</Label>
-                    <Input
-                      id="employer"
-                      name="employer"
-                      placeholder="Tech Company Inc."
-                      value={formData.employer}
-                      onChange={handleChange}
-                    />
-                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="residingAddress" className="flex">
+                    Residing Address<span className="text-destructive ml-1">*</span>
+                  </Label>
+                  <Textarea
+                    id="residingAddress"
+                    name="residingAddress"
+                    placeholder="123 Main St, City, State, ZIP"
+                    value={formData.residingAddress}
+                    onChange={handleChange}
+                    required
+                    className={errors.residingAddress ? "border-destructive" : ""}
+                  />
+                  {errors.residingAddress && (
+                    <p className="text-xs text-destructive mt-1">{errors.residingAddress}</p>
+                  )}
                 </div>
               </>
             )}
 
-            {/* Step 2: Family Information */}
+            {/* Step 2: Emergency Contact */}
             {currentStep === 2 && (
               <>
                 <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="spouseName">Spouse Name</Label>
+                    <Label htmlFor="emergencyContact" className="flex">
+                      Emergency Contact<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Input
-                      id="spouseName"
-                      name="spouseName"
+                      id="emergencyContact"
+                      name="emergencyContact"
                       placeholder="Jane Doe"
-                      value={formData.spouseName}
+                      value={formData.emergencyContact}
                       onChange={handleChange}
+                      required
+                      className={errors.emergencyContact ? "border-destructive" : ""}
                     />
+                    {errors.emergencyContact && (
+                      <p className="text-xs text-destructive mt-1">{errors.emergencyContact}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="spousePhone">Spouse Phone</Label>
-                    <Input
-                      id="spousePhone"
-                      name="spousePhone"
-                      placeholder="(555) 123-4567"
-                      value={formData.spousePhone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fatherName">Father's Name</Label>
-                    <Input
-                      id="fatherName"
-                      name="fatherName"
-                      placeholder="Robert Doe"
-                      value={formData.fatherName}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fatherHometown">Father's Hometown</Label>
-                    <Input
-                      id="fatherHometown"
-                      name="fatherHometown"
-                      placeholder="Hometown"
-                      value={formData.fatherHometown}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="fatherContact">Father's Contact</Label>
-                    <Input
-                      id="fatherContact"
-                      name="fatherContact"
-                      placeholder="(555) 987-6543"
-                      value={formData.fatherContact}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="motherName">Mother's Name</Label>
-                    <Input
-                      id="motherName"
-                      name="motherName"
-                      placeholder="Sarah Doe"
-                      value={formData.motherName}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="motherHometown">Mother's Hometown</Label>
-                    <Input
-                      id="motherHometown"
-                      name="motherHometown"
-                      placeholder="Hometown"
-                      value={formData.motherHometown}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="motherContact">Mother's Contact</Label>
-                    <Input
-                      id="motherContact"
-                      name="motherContact"
-                      placeholder="(555) 987-6543"
-                      value={formData.motherContact}
-                      onChange={handleChange}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="emergencyContactPhone">Emergency Contact Phone</Label>
-                    <Input
-                      id="emergencyContactPhone"
-                      name="emergencyContactPhone"
-                      placeholder="(555) 555-5555"
-                      value={formData.emergencyContactPhone}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="emergencyContactRelationship">Emergency Contact Relationship</Label>
+                    <Label htmlFor="emergencyContactRelationship" className="flex">
+                      Relationship<span className="text-destructive ml-1">*</span>
+                    </Label>
                     <Input
                       id="emergencyContactRelationship"
                       name="emergencyContactRelationship"
-                      placeholder="Sister"
+                      placeholder="Spouse"
                       value={formData.emergencyContactRelationship}
                       onChange={handleChange}
+                      required
+                      className={errors.emergencyContactRelationship ? "border-destructive" : ""}
                     />
+                    {errors.emergencyContactRelationship && (
+                      <p className="text-xs text-destructive mt-1">{errors.emergencyContactRelationship}</p>
+                    )}
                   </div>
                 </div>
               </>
             )}
 
-            {/* Step 3: Spiritual Journey */}
+            {/* Step 3: Ministry & Skills */}
             {currentStep === 3 && (
-              <>
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="dateJoinedChurch">Date Joined Church</Label>
-                    <Input
-                      id="dateJoinedChurch"
-                      name="dateJoinedChurch"
-                      type="date"
-                      value={formData.dateJoinedChurch}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="dateOfSalvation">Date of Salvation</Label>
-                    <Input
-                      id="dateOfSalvation"
-                      name="dateOfSalvation"
-                      type="date"
-                      value={formData.dateOfSalvation}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="baptismDate">Baptism Date</Label>
-                    <Input
-                      id="baptismDate"
-                      name="baptismDate"
-                      type="date"
-                      value={formData.baptismDate}
-                      onChange={handleChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="yearsAttended">Years Attended Previous Church</Label>
-                    <Input
-                      id="yearsAttended"
-                      name="yearsAttended"
-                      type="number"
-                      min="0"
-                      value={formData.yearsAttended || ""}
-                      onChange={(e) => handleNumberChange("yearsAttended", e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="previousChurchAffiliation">Previous Church Affiliation</Label>
-                  <Input
-                    id="previousChurchAffiliation"
-                    name="previousChurchAffiliation"
-                    placeholder="First Baptist Church"
-                    value={formData.previousChurchAffiliation}
-                    onChange={handleChange}
-                  />
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="baptizedWithHolySpirit" 
-                    checked={formData.baptizedWithHolySpirit}
-                    onCheckedChange={(checked) => 
-                      handleCheckboxChange("baptizedWithHolySpirit", checked === true)
-                    }
-                  />
-                  <Label htmlFor="baptizedWithHolySpirit">
-                    Baptized with the Holy Spirit
-                  </Label>
-                </div>
-              </>
-            )}
-
-            {/* Step 4: Ministry & Skills */}
-            {currentStep === 4 && (
               <>
                 <div className="space-y-4">
                   <div>
@@ -803,27 +599,6 @@ export default function AddMemberPage() {
                             }
                           />
                           <Label htmlFor={`ministry-${ministry}`}>{ministry}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label className="text-base">Spiritual Gifts</Label>
-                    <p className="text-sm text-muted-foreground mb-3">
-                      Select the spiritual gifts you believe you possess
-                    </p>
-                    <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3">
-                      {spiritualGiftsOptions.map((gift) => (
-                        <div key={gift} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`gift-${gift}`}
-                            checked={formData.spiritualGifts.includes(gift)}
-                            onCheckedChange={(checked) => 
-                              handleMultiSelectChange("spiritualGifts", gift, checked === true)
-                            }
-                          />
-                          <Label htmlFor={`gift-${gift}`}>{gift}</Label>
                         </div>
                       ))}
                     </div>
@@ -853,198 +628,64 @@ export default function AddMemberPage() {
               </>
             )}
 
-            {/* Step 5: Faith & Commitment */}
-            {currentStep === 5 && (
+            {/* Step 4: Church Information */}
+            {currentStep === 4 && (
               <>
-                <div className="space-y-4">
-                  <Label className="text-base font-medium">Statement of Faith</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Please indicate your agreement with the following statements
-                  </p>
-                  
+                <div className="grid gap-6 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="agreeWithBibleIsInspiredWord" 
-                        checked={formData.agreeWithBibleIsInspiredWord}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("agreeWithBibleIsInspiredWord", checked === true)
-                        }
-                      />
-                      <Label htmlFor="agreeWithBibleIsInspiredWord">
-                        I believe the Bible is the inspired Word of God
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="agreeWithSalvationThroughFaith" 
-                        checked={formData.agreeWithSalvationThroughFaith}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("agreeWithSalvationThroughFaith", checked === true)
-                        }
-                      />
-                      <Label htmlFor="agreeWithSalvationThroughFaith">
-                        I believe salvation comes through faith in Jesus Christ
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="agreeWithJesusSonOfGod" 
-                        checked={formData.agreeWithJesusSonOfGod}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("agreeWithJesusSonOfGod", checked === true)
-                        }
-                      />
-                      <Label htmlFor="agreeWithJesusSonOfGod">
-                        I believe Jesus Christ is the Son of God
-                      </Label>
-                    </div>
+                    <Label htmlFor="attendanceStatus">
+                      Attendance Status
+                    </Label>
+                    <Select 
+                      value={formData.attendanceStatus} 
+                      onValueChange={(value) => {
+                        handleSelectChange("attendanceStatus", value)
+                      }}
+                    >
+                      <SelectTrigger id="attendanceStatus">
+                        <SelectValue placeholder="Select attendance status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={AttendanceStatus.ACTIVE}>Active</SelectItem>
+                        <SelectItem value={AttendanceStatus.INACTIVE}>Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  
-                  <Label className="text-base font-medium pt-6">Commitments</Label>
-                  <p className="text-sm text-muted-foreground">
-                    As a member, I commit to the following
-                  </p>
-                  
                   <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="commitmentAttendServices" 
-                        checked={formData.commitmentAttendServices}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("commitmentAttendServices", checked === true)
-                        }
-                      />
-                      <Label htmlFor="commitmentAttendServices">
-                        I will regularly attend church services
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="commitmentSupportActivities" 
-                        checked={formData.commitmentSupportActivities}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("commitmentSupportActivities", checked === true)
-                        }
-                      />
-                      <Label htmlFor="commitmentSupportActivities">
-                        I will support church activities and programs
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="commitmentTithe" 
-                        checked={formData.commitmentTithe}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("commitmentTithe", checked === true)
-                        }
-                      />
-                      <Label htmlFor="commitmentTithe">
-                        I will financially support the church through tithing
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="commitmentLiveChristianValues" 
-                        checked={formData.commitmentLiveChristianValues}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("commitmentLiveChristianValues", checked === true)
-                        }
-                      />
-                      <Label htmlFor="commitmentLiveChristianValues">
-                        I will strive to live according to Christian values
-                      </Label>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Label htmlFor="signatureDate">Signature Date</Label>
+                    <Label htmlFor="lastAttendance">
+                      Last Attendance Date
+                    </Label>
                     <Input
-                      id="signatureDate"
-                      name="signatureDate"
+                      id="lastAttendance"
+                      name="lastAttendance"
                       type="date"
-                      value={formData.signatureDate}
+                      value={formData.lastAttendance}
                       onChange={handleChange}
                     />
                   </div>
-                </div>
-              </>
-            )}
-
-            {/* Step 6: Consent & Additional Information */}
-            {currentStep === 6 && (
-              <>
-                <div className="space-y-4">
-                  <Label className="text-base font-medium">Consent & Privacy</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Please indicate your consent to the following
-                  </p>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="consentContactPermission" 
-                        checked={formData.consentContactPermission}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("consentContactPermission", checked === true)
-                        }
-                      />
-                      <Label htmlFor="consentContactPermission">
-                        I consent to being contacted by the church via phone, email, and text
-                      </Label>
-                    </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="consentPhotoUse" 
-                        checked={formData.consentPhotoUse}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxChange("consentPhotoUse", checked === true)
-                        }
-                      />
-                      <Label htmlFor="consentPhotoUse">
-                        I consent to my photos being used in church publications and social media
-                      </Label>
-                    </div>
-                    
-                    <div className="pt-2">
-                      <Label htmlFor="consentSignatureDate">Consent Signature Date</Label>
-                      <Input
-                        id="consentSignatureDate"
-                        name="consentSignatureDate"
-                        type="date"
-                        value={formData.consentSignatureDate}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 pt-6">
-                    <Label htmlFor="specialNeeds">Special Needs or Accommodations</Label>
-                    <Textarea
-                      id="specialNeeds"
-                      name="specialNeeds"
-                      placeholder="Please list any special needs or accommodations that we should be aware of"
-                      value={formData.specialNeeds}
-                      onChange={handleChange}
-                      rows={3}
-                    />
-                  </div>
-                  
                   <div className="space-y-2">
-                    <Label htmlFor="howDidYouHear">How did you hear about us?</Label>
+                    <Label htmlFor="joinDate">
+                      Join Date
+                    </Label>
                     <Input
-                      id="howDidYouHear"
-                      name="howDidYouHear"
-                      placeholder="Friend, website, social media, etc."
-                      value={formData.howDidYouHear}
+                      id="joinDate"
+                      name="joinDate"
+                      type="date"
+                      value={formData.joinDate}
                       onChange={handleChange}
                     />
+                  </div>
+                  <div className="space-y-2 flex items-center pt-8">
+                    <Checkbox 
+                      id="baptized" 
+                      checked={formData.baptized}
+                      onCheckedChange={(checked) => 
+                        handleCheckboxChange("baptized", checked === true)
+                      }
+                    />
+                    <Label htmlFor="baptized" className="ml-2">
+                      Baptized
+                    </Label>
                   </div>
                 </div>
               </>
@@ -1052,30 +693,22 @@ export default function AddMemberPage() {
           </CardContent>
           
           <CardFooter className="flex justify-between">
-            {currentStep > 1 && (
-              <Button type="button" variant="outline" onClick={goToPreviousStep}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Previous
-              </Button>
-            )}
-            {currentStep === 1 && (
-              <Button variant="outline" type="button" onClick={() => router.back()}>
-                Cancel
-              </Button>
-            )}
-            
+            <Button
+              variant="outline"
+              onClick={goToPreviousStep}
+              disabled={currentStep === 1}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Previous
+            </Button>
             {currentStep < totalSteps ? (
-              <Button type="button" onClick={goToNextStep}>
+              <Button onClick={goToNextStep}>
                 Next
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button 
-                type="button" 
-                disabled={isSubmitting} 
-                onClick={submitForm}
-              >
-                {isSubmitting ? "Adding Member..." : "Add Member"}
+              <Button onClick={submitForm} disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Submit"}
               </Button>
             )}
           </CardFooter>
