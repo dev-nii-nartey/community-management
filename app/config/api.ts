@@ -9,5 +9,5 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost
 // API endpoints
 export const API_ENDPOINTS = {
   members: `${API_BASE_URL}/api/v1/rehic/members`,
-  member: `${API_BASE_URL}/api/v1/rehic/member`,
+  member: `${API_BASE_URL}/api/v1/rehic`, // Base path for member resource
 };

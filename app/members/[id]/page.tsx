@@ -41,8 +41,13 @@ export default function MemberProfilePage() {
     const fetchMember = async () => {
       try {
         setLoading(true)
+        // Log the params.id and the constructed URL
+        console.log("Fetching member with ID:", params.id);
+        const fetchUrl = `${API_ENDPOINTS.member}/${params.id}`;
+        console.log("Constructed fetch URL:", fetchUrl);
+
         // Fetch member by ID using the API config
-        const response = await fetch(`${API_ENDPOINTS.members}/${params.id}`)
+        const response = await fetch(fetchUrl)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
