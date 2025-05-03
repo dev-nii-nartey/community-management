@@ -271,7 +271,7 @@ export default function AddMemberPage() {
       
       console.log("Sending member data to backend:", JSON.stringify(memberData));
       
-      const response = await fetch(API_ENDPOINTS.member, {
+      const response = await fetch(API_ENDPOINTS.getMember, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

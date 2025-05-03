@@ -55,7 +55,7 @@ export default function MembersPage() {
   useEffect(() => {
     const fetchMembers = async () => {
       try {
-        const response = await fetch(API_ENDPOINTS.members)
+        const response = await fetch(API_ENDPOINTS.getMembers)
         const data: ApiResponse = await response.json()
         
         // console.error("Fetched members now:", data)
@@ -109,7 +109,7 @@ export default function MembersPage() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Members</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Rehic Members</h1>
           <p className="text-muted-foreground">Manage your community members and their information</p>
         </div>
         <Button onClick={() => router.push("/members/add")}>

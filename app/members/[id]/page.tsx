@@ -43,7 +43,7 @@ export default function MemberProfilePage() {
         setLoading(true)
         // Log the params.id and the constructed URL
         console.log("Fetching member with ID:", params.id);
-        const fetchUrl = `${API_ENDPOINTS.member}/${params.id}`;
+        const fetchUrl = `${API_ENDPOINTS.getMember}/${params.id}`;
         console.log("Constructed fetch URL:", fetchUrl);
 
         // Fetch member by ID using the API config
