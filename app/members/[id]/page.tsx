@@ -150,7 +150,13 @@ export default function MemberProfilePage() {
             <Button variant="outline" size="sm" onClick={() => router.push(`/messages/compose?to=${member.emailAddress}`)}>
               Send Message
             </Button>
-            <Button size="sm" onClick={() => router.push(`/members/${member.id}/edit`)}>
+            <Button 
+              size="sm" 
+              onClick={() => {
+                console.log("Navigating to edit page with ID:", member.id);
+                router.push(`/members/${params.id}/edit`);
+              }}
+            >
               Edit Profile
             </Button>
           </CardFooter>
