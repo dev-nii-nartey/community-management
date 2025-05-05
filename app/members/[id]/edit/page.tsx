@@ -147,10 +147,28 @@ export default function EditMemberPage() {
         }
         
         const memberData = await response.json()
+        console.log("API Response from backend:", memberData);
+        console.log("Member ID from API:", memberData.id);
+        console.log("Member recordId from API:", memberData.recordId);
+        
+        // For debugging purposes
+        let idToUse = memberData.id;
+        
+        // Check if id is missing but recordId exists (API inconsistency)
+        if (!idToUse && memberData.recordId) {
+          console.log("Using recordId instead of id:", memberData.recordId);
+          idToUse = memberData.recordId;
+        }
+        
+        // If still no ID, use the URL param as last resort
+        if (!idToUse) {
+          console.log("Using URL params.id as fallback:", params.id);
+          idToUse = params.id;
+        }
         
         // Transform API data to match our form structure
         setFormData({
-          id: memberData.id || "",
+          id: idToUse, // Use the identified ID
           firstName: memberData.firstName || "",
           lastName: memberData.lastName || "",
           preferredName: memberData.preferredName || "",
@@ -321,7 +339,7 @@ export default function EditMemberPage() {
       
       // Create data structure that matches MemberDto in the backend
       const memberData = {
-        id: formData.id,
+        recordId: formData.id || params.id, 
         firstName: formData.firstName,
         lastName: formData.lastName,
         preferredName: formData.preferredName || null,
@@ -336,19 +354,19 @@ export default function EditMemberPage() {
         employer: formData.employer || null,
         emergencyContact: formData.emergencyContact,
         emergencyContactRelationship: formData.emergencyContactRelationship,
-        dateJoinedChurch: formatDateForJava(formData.joinDate),
+        joinDate: formatDateForJava(formData.joinDate),
         lastAttendance: formatDateForJava(formData.lastAttendance),
         attendanceStatus: formData.attendanceStatus,
-        baptizedWithHolySpirit: formData.baptizedWithHolySpirit,
+        baptized: formData.baptizedWithHolySpirit, 
         ministriesOfInterest: formData.ministriesOfInterest.length > 0 ? formData.ministriesOfInterest : null,
         skills: formData.skills.length > 0 ? formData.skills : null,
         isDeleted: formData.isDeleted
       };
       
-      console.log("Sending updated member data to backend:", JSON.stringify(memberData));
+      console.log("Sending updated member data to backend with recordId:", memberData.recordId);
       
       // Use PUT method to update the existing member
-      const response = await fetch(`${API_ENDPOINTS.getMember}/${formData.id}`, {
+      const response = await fetch(`${API_ENDPOINTS.getMember}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
