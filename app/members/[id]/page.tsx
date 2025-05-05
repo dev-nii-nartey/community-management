@@ -153,8 +153,9 @@ export default function MemberProfilePage() {
             <Button 
               size="sm" 
               onClick={() => {
-                console.log("Navigating to edit page with ID:", member.id);
-                router.push(`/members/${params.id}/edit`);
+                // Use params.id as a fallback if member.id is undefined
+                const idToUse = member?.id || params.id;
+                router.push(`/members/${idToUse}/edit`);
               }}
             >
               Edit Profile
