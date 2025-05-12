@@ -313,7 +313,7 @@ export default function AddMemberPage() {
         description: `${formData.firstName} ${formData.lastName} has been added to your community.`,
       });
 
-      router.push("/members");
+      router.replace("/members");
     } catch (error) {
       console.error('Error submitting form:', error);
       toast({

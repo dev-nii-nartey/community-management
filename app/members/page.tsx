@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserPlus, Search, MoreHorizontal, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react"
 import { API_ENDPOINTS } from "@/app/config/api"
+import useLocalStorage from "@/hooks/use-local-storage"
 
 // Interface matching the Java MemberSummaryDto
 interface ApiMember {
@@ -53,7 +54,7 @@ export default function MembersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [members, setMembers] = useState<DisplayMember[]>([])
-  const [page, setPage] = useState(0)
+  const [page, setPage] = useLocalStorage<number>("membersListPage", 0)
   const [pageSize] = useState(10)
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -91,7 +92,8 @@ export default function MembersPage() {
   }
 
   useEffect(() => {
-    fetchMembers()
+    fetchMembers(page)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Filter members only for search and status filters

@@ -407,7 +407,7 @@ export default function EditMemberPage() {
         description: `${formData.firstName} ${formData.lastName}'s information has been updated.`,
       });
 
-      router.push(`/members/${formData.id}`);
+      router.replace("/members");
     } catch (error) {
       console.error('Error updating member:', error);
       toast({
