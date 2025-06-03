@@ -41,8 +41,13 @@ export default function MemberProfilePage() {
     const fetchMember = async () => {
       try {
         setLoading(true)
+        // Log the params.id and the constructed URL
+        console.log("Fetching member with ID:", params.id);
+        const fetchUrl = `${API_ENDPOINTS.getMember}/${params.id}`;
+        console.log("Constructed fetch URL:", fetchUrl);
+
         // Fetch member by ID using the API config
-        const response = await fetch(`${API_ENDPOINTS.members}/${params.id}`)
+        const response = await fetch(fetchUrl)
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
@@ -145,7 +150,14 @@ export default function MemberProfilePage() {
             <Button variant="outline" size="sm" onClick={() => router.push(`/messages/compose?to=${member.emailAddress}`)}>
               Send Message
             </Button>
-            <Button size="sm" onClick={() => router.push(`/members/edit/${member.id}`)}>
+            <Button 
+              size="sm" 
+              onClick={() => {
+                // Use params.id as a fallback if member.id is undefined
+                const idToUse = member?.id || params.id;
+                router.push(`/members/${idToUse}/edit`);
+              }}
+            >
               Edit Profile
             </Button>
           </CardFooter>

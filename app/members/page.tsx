@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { UserPlus, Search, MoreHorizontal, Filter, Download } from "lucide-react"
+import { UserPlus, Search, MoreHorizontal, Filter, Download, ChevronLeft, ChevronRight } from "lucide-react"
 import { API_ENDPOINTS } from "@/app/config/api"
+import useLocalStorage from "@/hooks/use-local-storage"
 
 // Interface matching the Java MemberSummaryDto
 interface ApiMember {
@@ -38,12 +39,14 @@ interface DisplayMember {
 
 interface ApiResponse {
   content: ApiMember[];
-  page: {
-    size: number;
-    number: number;
-    totalElements: number;
-    totalPages: number;
+  pageable: {
+    pageNumber: number;
+    pageSize: number;
   };
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
 }
 
 export default function MembersPage() {
@@ -51,36 +54,50 @@ export default function MembersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [members, setMembers] = useState<DisplayMember[]>([])
+  const [page, setPage] = useLocalStorage<number>("membersListPage", 0)
+  const [pageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(1)
+  const [loading, setLoading] = useState(false)
+
+  const fetchMembers = async (pageNumber = page) => {
+    setLoading(true)
+    try {
+      const url = new URL(API_ENDPOINTS.getMembers);
+      url.searchParams.append('page', pageNumber.toString());
+      url.searchParams.append('size', pageSize.toString());
+      
+      const response = await fetch(url.toString())
+      const data: ApiResponse = await response.json()
+      
+      // Transform the API data to match our component's expected format
+      const transformedMembers = data.content.map((apiMember: ApiMember) => ({
+        id: apiMember.id, 
+        name: `${apiMember.firstName} ${apiMember.lastName}`,
+        email: apiMember.emailAddress,
+        phone: apiMember.primaryPhone,
+        status: apiMember.attendanceStatus?.toLowerCase() || "active",
+        joinDate: new Date(apiMember.dateJoinedChurch).toLocaleDateString(),
+        lastAttendance: apiMember.lastAttendance ? new Date(apiMember.lastAttendance).toLocaleDateString() : "N/A"
+      }));
+      
+      setMembers(transformedMembers)
+      setTotalPages(data.totalPages)
+      setPage(pageNumber)
+    } catch (error) {
+      console.error("Failed to fetch members:", error)
+      setMembers([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchMembers = async () => {
-      try {
-        const response = await fetch(API_ENDPOINTS.members)
-        const data: ApiResponse = await response.json()
-        
-        console.error("Fetched members now:", data)
-
-        // Transform the API data to match our component's expected format
-        const transformedMembers = data.content.map((apiMember: ApiMember) => ({
-          id: apiMember.id, 
-          name: `${apiMember.firstName} ${apiMember.lastName}`,
-          email: apiMember.emailAddress,
-          phone: apiMember.primaryPhone,
-          status: apiMember.attendanceStatus?.toLowerCase() || "active",
-          joinDate: new Date(apiMember.dateJoinedChurch).toLocaleDateString(),
-          lastAttendance: apiMember.lastAttendance ? new Date(apiMember.lastAttendance).toLocaleDateString() : "N/A"
-        }));
-        
-        setMembers(transformedMembers)
-      } catch (error) {
-        console.error("Failed to fetch members:", error)
-        setMembers([])
-      }
-    }
-    
-    fetchMembers()
+    fetchMembers(page)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Filter members only for search and status filters
+  // Pagination is handled by the backend
   const filteredMembers = Array.isArray(members) ? members.filter((member) => {
     const matchesSearch =
       member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -91,6 +108,18 @@ export default function MembersPage() {
 
     return matchesSearch && matchesStatus
   }) : []
+
+  const handleNextPage = () => {
+    if (page < totalPages - 1) {
+      fetchMembers(page + 1)
+    }
+  }
+
+  const handlePrevPage = () => {
+    if (page > 0) {
+      fetchMembers(page - 1)
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -109,7 +138,7 @@ export default function MembersPage() {
     <div className="space-y-6">
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Members</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Rehic Members</h1>
           <p className="text-muted-foreground">Manage your community members and their information</p>
         </div>
         <Button onClick={() => router.push("/members/add")}>
@@ -167,7 +196,15 @@ export default function MembersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMembers.length === 0 ? (
+                {loading ? (
+                  Array(pageSize).fill(0).map((_, index) => (
+                    <TableRow key={`loading-${index}`} className="h-12">
+                      <TableCell colSpan={7} className="py-2">
+                        <div className="h-full animate-pulse bg-muted rounded-md"></div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredMembers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center h-24">
                       No members found matching your criteria
@@ -177,13 +214,13 @@ export default function MembersPage() {
                   filteredMembers.map((member) => (
                     <TableRow 
                       key={member.id} 
-                      className="cursor-pointer hover:bg-muted/50" 
+                      className="cursor-pointer hover:bg-muted/50 h-12" 
                       onClick={() => router.push(`/members/${member.id}`)}
                     >
-                      <TableCell>
+                      <TableCell className="py-2">
                         <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarFallback>
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-xs">
                               {member.name
                                 .split(" ")
                                 .map((n: string) => n[0])
@@ -191,17 +228,17 @@ export default function MembersPage() {
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <div className="font-medium">{member.name}</div>
-                            <div className="text-sm text-muted-foreground md:hidden">{member.email}</div>
+                            <div className="font-medium text-sm">{member.name}</div>
+                            <div className="text-xs text-muted-foreground md:hidden">{member.email}</div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{getStatusBadge(member.status)}</TableCell>
-                      <TableCell className="hidden md:table-cell">{member.email}</TableCell>
-                      <TableCell className="hidden md:table-cell">{member.phone}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{member.joinDate}</TableCell>
-                      <TableCell className="hidden lg:table-cell">{member.lastAttendance}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="py-2">{getStatusBadge(member.status)}</TableCell>
+                      <TableCell className="hidden md:table-cell py-2 text-sm">{member.email}</TableCell>
+                      <TableCell className="hidden md:table-cell py-2 text-sm">{member.phone}</TableCell>
+                      <TableCell className="hidden lg:table-cell py-2 text-sm">{member.joinDate}</TableCell>
+                      <TableCell className="hidden lg:table-cell py-2 text-sm">{member.lastAttendance}</TableCell>
+                      <TableCell className="text-right py-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button 
@@ -214,12 +251,12 @@ export default function MembersPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => router.push(`/members/${member.email}`)}>
+                            <DropdownMenuItem onClick={() => router.push(`/members/${member.id}`)}>
                               View Profile
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={(e) => {
                               e.stopPropagation(); // Prevent row click
-                              router.push(`/members/${member.email}/edit`);
+                              router.push(`/members/${member.id}/edit`);
                             }}>
                               Edit Member
                             </DropdownMenuItem>
@@ -233,6 +270,33 @@ export default function MembersPage() {
                 )}
               </TableBody>
             </Table>
+          </div>
+          
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="text-sm text-muted-foreground">
+              {loading ? 'Loading...' : `Page ${page + 1} of ${totalPages}`}
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handlePrevPage} 
+                disabled={page === 0 || loading}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleNextPage} 
+                disabled={page >= totalPages - 1 || loading}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
